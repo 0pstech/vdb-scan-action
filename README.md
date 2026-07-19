@@ -63,4 +63,8 @@ later steps:
   (LLM-hallucinated package names attackers register). Docs:
   <https://vdb.ai.kr/api>. MCP server for coding agents: `uvx vdb-mcp`.
 
-MIT license.
+## License
+
+[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/)
+— free for personal, research, and other noncommercial use. For commercial
+use, contact <dev@egdee.com>.
