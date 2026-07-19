@@ -1,0 +1,64 @@
+name: "VDB SBOM Scan"
+description: >-
+  Scan a lockfile or SBOM against VDB (vdb.ai.kr) — known CVEs, slopsquatting,
+  CISA KEV — and fail the build on a severity threshold. One line in CI.
+author: "VDB"
+branding:
+  icon: "shield"
+  color: "green"
+
+inputs:
+  file:
+    description: >-
+      Path to the SBOM / dependency file (CycloneDX, SPDX, package-lock.json,
+      yarn.lock, pnpm-lock.yaml, requirements.txt, go.sum, Cargo.lock,
+      Gemfile.lock, composer.lock, …). Empty = auto-detect in the repo root.
+    required: false
+    default: ""
+  api-key:
+    description: >-
+      VDB API key (vdb_…). Strongly recommended in CI: anonymous calls share
+      the runner IP pool's small lifetime trial. Free key at
+      https://vdb.ai.kr/signup — store as a repo secret.
+    required: false
+    default: ""
+  api-url:
+    description: "VDB instance origin (self-hosted deployments override this)."
+    required: false
+    default: "https://vdb.ai.kr"
+  fail-on:
+    description: "Fail the job at or above this severity: critical | high | medium | low | never"
+    required: false
+    default: "high"
+
+outputs:
+  critical:
+    description: "Number of critical findings"
+    value: ${{ steps.scan.outputs.critical }}
+  high:
+    description: "Number of high findings"
+    value: ${{ steps.scan.outputs.high }}
+  medium:
+    description: "Number of medium findings"
+    value: ${{ steps.scan.outputs.medium }}
+  low:
+    description: "Number of low findings"
+    value: ${{ steps.scan.outputs.low }}
+  kev:
+    description: "Findings on the CISA Known-Exploited list"
+    value: ${{ steps.scan.outputs.kev }}
+  components-matched:
+    description: "Components with at least one advisory"
+    value: ${{ steps.scan.outputs.components_matched }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: scan
+      shell: bash
+      env:
+        VDB_INPUT_FILE: ${{ inputs.file }}
+        VDB_INPUT_API_KEY: ${{ inputs.api-key }}
+        VDB_INPUT_API_URL: ${{ inputs.api-url }}
+        VDB_INPUT_FAIL_ON: ${{ inputs.fail-on }}
+      run: python3 "$GITHUB_ACTION_PATH/scan.py"
