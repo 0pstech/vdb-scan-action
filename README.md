@@ -65,6 +65,8 @@ later steps:
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/)
-— free for personal, research, and other noncommercial use. For commercial
-use, contact <dev@egdee.com>.
+[Elastic License 2.0](https://www.elastic.co/licensing/elastic-license) —
+free to use, including inside commercial organizations and CI. The only
+restrictions: you may not offer this software to third parties as a hosted
+or managed service, or resell it as a product. Beyond that:
+<dev@egdee.com>.
