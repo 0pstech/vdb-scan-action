@@ -1,7 +1,5 @@
 name: "VDB SBOM Scan"
-description: >-
-  Scan a lockfile or SBOM against VDB (vdb.ai.kr) — known CVEs, slopsquatting,
-  CISA KEV — and fail the build on a severity threshold. One line in CI.
+description: "Scan a lockfile or SBOM against VDB: known CVEs, CISA KEV and slopsquatting, with a build-failing gate"
 author: "VDB"
 branding:
   icon: "shield"
