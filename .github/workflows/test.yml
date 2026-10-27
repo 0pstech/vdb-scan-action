@@ -1,0 +1,42 @@
+name: test
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    name: harden.py against a fake uvx
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests -v
+
+  example:
+    # The action on its own example project, keyless unless the repo has a
+    # VDB_API_KEY secret. fail-on: never — this job tests the plumbing, the
+    # verdict on the fixture is whatever VDB decides today.
+    name: action on tests/fixture (harden)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        id: vdb
+        with:
+          file: tests/fixture/requirements.txt
+          fail-on: never
+          harden: true
+          harden-path: tests/fixture
+          harden-manifest: tests/fixture/requirements.txt
+          harden-fail-on: never
+          api-key: ${{ secrets.VDB_API_KEY }}
+      - name: outputs are set
+        env:
+          STATUS: ${{ steps.vdb.outputs.harden-status }}
+          RISK: ${{ steps.vdb.outputs.harden-risk }}
+          PATHS: ${{ steps.vdb.outputs.harden-paths }}
+        run: |
+          echo "harden-status=$STATUS harden-risk=$RISK harden-paths=$PATHS"
+          case "$STATUS" in
+            clean|open|incomplete) ;;
+            *) echo "::error::unexpected harden-status: '$STATUS'"; exit 1 ;;
+          esac

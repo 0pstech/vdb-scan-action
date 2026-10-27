@@ -1,5 +1,5 @@
 name: "VDB SBOM Scan"
-description: "Scan a lockfile or SBOM against VDB: known CVEs, CISA KEV and slopsquatting, with a build-failing gate"
+description: "Scan a lockfile or SBOM against VDB: known CVEs, CISA KEV and slopsquatting, with a build-failing gate; optional call-site hardening for Python"
 author: "VDB"
 branding:
   icon: "shield"
@@ -28,6 +28,34 @@ inputs:
     description: "Fail the job at or above this severity: critical | high | medium | low | never"
     required: false
     default: "high"
+  harden:
+    description: >-
+      Also run call-site hardening (Python): can attacker-controlled data
+      reach a dangerous sink through your dependencies? Runs
+      `uvx --from vdb-mcp vdb harden` and ranks what to fix first.
+    required: false
+    default: "false"
+  harden-manifest:
+    description: >-
+      Lockfile / SBOM the hardening analysis resolves the dependency graph
+      from. Empty = the first of uv.lock, poetry.lock, requirements.txt,
+      *.cdx.json in the workspace root.
+    required: false
+    default: ""
+  harden-path:
+    description: "Source tree (or one file) to analyze. Default: the workspace root."
+    required: false
+    default: "."
+  harden-target:
+    description: "Project risk the remediation combination should get under (0–1)."
+    required: false
+    default: "0.2"
+  harden-fail-on:
+    description: >-
+      When to fail the check: open (a decided dataflow path is open) |
+      incomplete (also when the analysis could not decide the paths) | never
+    required: false
+    default: "open"
 
 outputs:
   critical:
@@ -48,6 +76,15 @@ outputs:
   components-matched:
     description: "Components with at least one advisory"
     value: ${{ steps.scan.outputs.components_matched }}
+  harden-status:
+    description: "clean | open | incomplete | error (empty when harden is off)"
+    value: ${{ steps.harden.outputs.harden-status }}
+  harden-risk:
+    description: "Project risk score, e.g. 0.37, or an interval when incomplete"
+    value: ${{ steps.harden.outputs.harden-risk }}
+  harden-paths:
+    description: "Decided dataflow paths that are open"
+    value: ${{ steps.harden.outputs.harden-paths }}
 
 runs:
   using: "composite"
@@ -60,3 +97,19 @@ runs:
         VDB_INPUT_API_URL: ${{ inputs.api-url }}
         VDB_INPUT_FAIL_ON: ${{ inputs.fail-on }}
       run: python3 "$GITHUB_ACTION_PATH/scan.py"
+    # 하드닝은 옵트인. uv 는 setup-uv 로 깔고, 셀프호스트 러너에서 그 스텝이
+    # 실패해도 harden.py 가 pip 으로 한 번 더 시도한다.
+    - if: ${{ inputs.harden == 'true' }}
+      uses: astral-sh/setup-uv@v10
+      continue-on-error: true
+    - id: harden
+      if: ${{ inputs.harden == 'true' }}
+      shell: bash
+      env:
+        VDB_INPUT_HARDEN_MANIFEST: ${{ inputs.harden-manifest }}
+        VDB_INPUT_HARDEN_PATH: ${{ inputs.harden-path }}
+        VDB_INPUT_HARDEN_TARGET: ${{ inputs.harden-target }}
+        VDB_INPUT_HARDEN_FAIL_ON: ${{ inputs.harden-fail-on }}
+        VDB_INPUT_API_KEY: ${{ inputs.api-key }}
+        VDB_INPUT_API_URL: ${{ inputs.api-url }}
+      run: python3 "$GITHUB_ACTION_PATH/harden.py"
