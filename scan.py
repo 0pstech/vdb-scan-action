@@ -72,8 +72,13 @@ def pick_file() -> str:
 def scan(path: str) -> tuple[int, dict]:
     api = (os.environ.get("VDB_INPUT_API_URL") or "https://vdb.ai.kr").rstrip("/")
     key = (os.environ.get("VDB_INPUT_API_KEY") or "").strip()
-    cmd = ["curl", "-sS", "-w", "\n%{http_code}", "-F", f"file=@{path}",
-           f"{api}/v1/sbom/scan"]
+    # X-VDB-Client + User-Agent attribute this to the CI-action channel in
+    # VDB's admin traffic breakdown (a bare curl would otherwise show as
+    # "curl", indistinguishable from ad-hoc calls).
+    cmd = ["curl", "-sS", "-w", "\n%{http_code}",
+           "-H", "X-VDB-Client: vdb-scan-action",
+           "-A", "vdb-scan-action",
+           "-F", f"file=@{path}", f"{api}/v1/sbom/scan"]
     if key:
         cmd[1:1] = ["-H", f"Authorization: Bearer {key}"]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
